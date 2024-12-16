@@ -16,6 +16,7 @@ import com.example.footstepcounter.ui.theme.FootStepCounterTheme
 
 @Composable
 fun App(
+    permissionGranted: Boolean,
     stepCount: Int,
     isListening: Boolean,
     toggleSensorReader: () -> Unit,
@@ -26,11 +27,11 @@ fun App(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Content("Step Count: $stepCount")
+        Content(if (permissionGranted) "Step Count: $stepCount" else "We need your permission")
         Button(
             onClick = toggleSensorReader,
         ) {
-            Text(text = if (isListening) "Stop" else "Start")
+            Text(text = if (permissionGranted && isListening) "Stop" else "Start")
         }
     }
 
@@ -43,7 +44,7 @@ fun Content(name: String, modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "$name",
+            text = name,
             modifier = modifier
         )
     }
@@ -55,6 +56,7 @@ fun Content(name: String, modifier: Modifier = Modifier) {
 fun AppPreview() {
     FootStepCounterTheme {
         App(
+            false,
             1,
             true,
             {},

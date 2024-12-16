@@ -1,0 +1,1 @@
+Document: https://developer.android.com/health-and-fitness/guides/basic-fitness-app/read-step-count-data

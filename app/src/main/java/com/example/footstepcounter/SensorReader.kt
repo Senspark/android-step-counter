@@ -1,12 +1,18 @@
 package com.example.footstepcounter
 
+import android.Manifest
 import android.app.Activity
 import android.content.Context
+import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.Build.VERSION
+import android.os.Build.VERSION_CODES
 import android.util.Log
+import androidx.core.app.ActivityCompat
+import kotlinx.coroutines.CompletableDeferred
 
 class SensorReader {
 
@@ -17,7 +23,34 @@ class SensorReader {
     private var _stepDetector: Sensor? = null
     private var _sensorListener: SensorEventListener? = null
 
+    private val _permission = Manifest.permission.ACTIVITY_RECOGNITION
+    private var _permissionCompletion: CompletableDeferred<Boolean>? = null
+    private var _requestCode = 0
+
+    suspend fun askPermission(activity: Activity): Boolean {
+        if (isPermissionsGranted(activity)) {
+            return true
+        } else {
+            ActivityCompat.requestPermissions(
+                activity,
+                arrayOf(_permission),
+                ++_requestCode
+            )
+            val task = CompletableDeferred<Boolean>()
+            _permissionCompletion = task
+            val granted = task.await()
+            if (!granted) {
+                Log.e(TAG, "Permission denied")
+            }
+            return granted
+        }
+    }
+
     fun listen(activity: Activity, onStepCount: (StepCount) -> Unit) {
+        if (!isPermissionsGranted(activity)) {
+            return
+        }
+
         removeListener()
 
         if (_sensorManager == null) {
@@ -46,6 +79,24 @@ class SensorReader {
             _sensorManager?.unregisterListener(_sensorListener)
             _sensorListener = null
         }
+    }
+
+    fun onPermissionsGranted(activity: Activity, requestCode: Int) {
+        if (requestCode == _requestCode) {
+            if (isPermissionsGranted(activity)) {
+                _permissionCompletion?.complete(true)
+            } else {
+                _permissionCompletion?.complete(false)
+            }
+        }
+    }
+
+    private fun isPermissionsGranted(activity: Activity): Boolean {
+        if (VERSION.SDK_INT >= VERSION_CODES.Q) {
+            val grantedPermissions = ActivityCompat.checkSelfPermission(activity, _permission)
+            return grantedPermissions == PackageManager.PERMISSION_GRANTED
+        }
+        return true
     }
 
     companion object {
